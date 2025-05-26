@@ -178,3 +178,5 @@ cython_debug/
 .python-version
 pyproject.toml
 .venv
+images
+my_lancedb
