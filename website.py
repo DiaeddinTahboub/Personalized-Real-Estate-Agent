@@ -8,8 +8,8 @@ from transformers import CLIPProcessor, CLIPModel
 from dotenv import load_dotenv
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from langchain.schema import HumanMessage
-load_dotenv()
 
+load_dotenv()
 
 
 # Load CLIP model and processor
@@ -18,7 +18,9 @@ model = CLIPModel.from_pretrained(model_name)
 processor = CLIPProcessor.from_pretrained(model_name)
 embedder = OpenAIEmbeddings()
 schemas = [
-    ResponseSchema(name="rankings", description="List of listings ranked with their descriptions"),
+    ResponseSchema(
+        name="rankings", description="List of listings ranked with their descriptions"
+    ),
     ResponseSchema(name="summary", description="Overall summary about the listings"),
 ]
 
@@ -26,12 +28,12 @@ parser = StructuredOutputParser.from_response_schemas(schemas)
 format_instructions = parser.get_format_instructions()
 llm = ChatOpenAI(model_name="gpt-3.5-turbo")
 # Question list
-questions = [   
-    "How big do you want your house to be?", 
-    "What are 3 most important things for you in choosing this property?", 
-    "Which amenities would you like?", 
+questions = [
+    "How big do you want your house to be?",
+    "What are 3 most important things for you in choosing this property?",
+    "Which amenities would you like?",
     "Which transportation options are important to you?",
-    "How urban do you want your neighborhood to be?",   
+    "How urban do you want your neighborhood to be?",
 ]
 
 # App state
@@ -44,10 +46,12 @@ def retrieve_best_matches(query, num_matches=5):
     images_table = db.open_table("images")
 
     # Split and embed lines with CLIP
-    lines = [line.strip() for line in query.strip().split('\n') if line.strip()]
+    lines = [line.strip() for line in query.strip().split("\n") if line.strip()]
     embeddings = []
     for line in lines:
-        inputs = processor(text=line, return_tensors="pt", padding=True, truncation=True)
+        inputs = processor(
+            text=line, return_tensors="pt", padding=True, truncation=True
+        )
         with torch.no_grad():
             embedding = model.get_text_features(**inputs)
             embeddings.append(embedding)
@@ -56,9 +60,13 @@ def retrieve_best_matches(query, num_matches=5):
 
     # Embed full query with OpenAI
     query_embedding_listing = np.array(embedder.embed_query(query))
-    
-    listings_results = listings_table.search(query_embedding_listing).limit(num_matches).to_pandas()
-    images_results = images_table.search(query_embedding_image_np).limit(num_matches).to_pandas()
+
+    listings_results = (
+        listings_table.search(query_embedding_listing).limit(num_matches).to_pandas()
+    )
+    images_results = (
+        images_table.search(query_embedding_image_np).limit(num_matches).to_pandas()
+    )
 
     return listings_results.loc[:, "listing"], images_results.loc[:, "image_path"]
 
@@ -67,19 +75,49 @@ def start_chat():
 
     state["index"] = 0
     state["answers"] = []
-    return questions[0], "", gr.update(visible=True), gr.update(visible=False), "", gr.update(visible=False)
+    return (
+        questions[0],
+        "",
+        gr.update(visible=True),
+        gr.update(visible=False),
+        "",
+        gr.update(visible=False),
+    )
+
 
 def submit_answer(answer):
     if answer.strip() == "" or answer == "Please enter an answer." or len(answer) < 3:
-        return questions[state["index"]], "Please enter an answer.", gr.update(visible=True), gr.update(visible=False), "", gr.update(visible=False)
-    
+        return (
+            questions[state["index"]],
+            "Please enter an answer.",
+            gr.update(visible=True),
+            gr.update(visible=False),
+            "",
+            gr.update(visible=False),
+        )
+
     state["answers"].append(answer.strip())
     state["index"] += 1
 
     if state["index"] < len(questions):
-        return questions[state["index"]], "", gr.update(visible=True), gr.update(visible=False), "", gr.update(visible=False)
+        return (
+            questions[state["index"]],
+            "",
+            gr.update(visible=True),
+            gr.update(visible=False),
+            "",
+            gr.update(visible=False),
+        )
     else:
-        return "", "", gr.update(visible=False), gr.update(visible=True), "", gr.update(visible=False)
+        return (
+            "",
+            "",
+            gr.update(visible=False),
+            gr.update(visible=True),
+            "",
+            gr.update(visible=False),
+        )
+
 
 def done():
     final_answers = "\n".join(state["answers"])
@@ -103,7 +141,14 @@ def done():
     response_text = response.content
 
     image_paths = retrieved_images.tolist()  # Ensure it's a list of strings
-    return response_text, gr.update(visible=False), gr.update(visible=True), image_paths, gr.update(visible=True)
+    return (
+        response_text,
+        gr.update(visible=False),
+        gr.update(visible=True),
+        image_paths,
+        gr.update(visible=True),
+    )
+
 
 # Gradio interface
 with gr.Blocks() as demo:
@@ -117,8 +162,15 @@ with gr.Blocks() as demo:
     output = gr.Textbox(label="AI Response", interactive=False, lines=10)
     gallery = gr.Gallery(label="Matching Properties", visible=False)
 
-    start_btn.click(start_chat, outputs=[question_txt, answer_input, submit_btn, done_btn, output, gallery])
-    submit_btn.click(submit_answer, inputs=answer_input, outputs=[question_txt, answer_input, submit_btn, done_btn, output, gallery])
+    start_btn.click(
+        start_chat,
+        outputs=[question_txt, answer_input, submit_btn, done_btn, output, gallery],
+    )
+    submit_btn.click(
+        submit_answer,
+        inputs=answer_input,
+        outputs=[question_txt, answer_input, submit_btn, done_btn, output, gallery],
+    )
     done_btn.click(done, outputs=[output, done_btn, start_btn, gallery, gallery])
 
 demo.launch()
