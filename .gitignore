@@ -180,3 +180,4 @@ pyproject.toml
 .venv
 images
 my_lancedb
+.gradio
