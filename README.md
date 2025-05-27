@@ -10,10 +10,9 @@ This project demonstrates the power of combining **LangChain**, **OpenAI**, and 
 
 - 🏘️ **Generates 100 diverse house listings** using `ChatOpenAI` from `langchain`.
 - 🧠 **Converts these listings to embeddings** using `OpenAIEmbeddings`.
-- 💾 **Stores them in a LanceDB vector database** for fast semantic search.
 - 🖼️ **Fetches and embeds house images** from a public dataset.
-- 📂 **Stores both text and image embeddings** in the same LanceDB table.
-- 💻 **Provides a simple web interface** to explore listings.
+- 📂 **Stores both text and image embeddings** in the same LanceDB database.
+- 💻 **Provides a simple web interface** to explore listings and house images retrieved based on the user preferences.
 
 ---
 
